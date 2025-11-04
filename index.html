@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatório de Manutenção</title>
+    <style>
+        /* Estilo básico para organizar o formulário */
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        .container { max-width: 800px; margin: auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        h1 { text-align: center; color: #1a1a1a; margin-bottom: 25px; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        .form-group { margin-bottom: 18px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
+        
+        /* Inputs e Textareas ocupam 100% da largura */
+        input[type="text"],
+        input[type="date"],
+        input[list],
+        textarea {
+            width: 100%;
+            padding: 10px;
+            box-sizing: border-box; 
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            transition: border-color 0.3s, box-shadow 0.3s;
+        }
+        input:focus, textarea:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
+            outline: none;
+        }
+
+        textarea { height: 120px; resize: vertical; }
+        
+        /* Botão estilizado */
+        .btn-submit { 
+            display: block;
+            width: 100%;
+            background-color: #007bff; 
+            color: white; 
+            padding: 14px 20px; 
+            border: none; 
+            border-radius: 6px; 
+            cursor: pointer; 
+            font-size: 18px; 
+            font-weight: bold;
+            transition: background-color 0.3s, transform 0.1s;
+        }
+        .btn-submit:hover { 
+            background-color: #0056b3; 
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        }
+        
+        /* Estilo para a mensagem de relatório */
+        #relatorio-output {
+            margin-top: 25px;
+            padding: 20px;
+            border: 1px solid #d4edda;
+            background-color: #e9f8f4;
+            border-radius: 8px;
+            white-space: pre-wrap; 
+            font-size: 15px;
+            color: #0c5460;
+            border-left: 6px solid #20c997; /* Borda lateral verde */
+            display: none; 
+            overflow-x: auto; /* Para rolagem em telas pequenas */
+        }
+        #relatorio-output strong {
+            color: #007bff;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>MANUTENÇÃO PREVENTIVA</h1>
+        
+        <form id="manutencao-form">
+
+            <div class="form-group">
+                <label for="data">Data da Manutenção:</label>
+                <input type="date" id="data" name="data_manutencao" required>
+            </div>
+
+            <div class="form-group">
+                <label for="equipamento">Equipamento / Código PF:</label>
+                <!-- Datalist com os códigos que você forneceu -->
+                <input list="lista-equipamentos" id="equipamento" name="equipamento" placeholder="Digite ou selecione o código do equipamento (ex: PF1105)..." required>
+                
+                <datalist id="lista-equipamentos">
+                    <option value="PF1105">
+                    <option value="PF1111">
+                    <option value="PF1115">
+                    <option value="PF1120">
+                    <option value="PF1140">
+                    <option value="PF1142">
+                    <option value="PF1144">
+                    <option value="PF1145"> 
+                    <option value="PF1146">
+                    <option value="PF1147">
+                    <option value="PF1148">
+                    <option value="PF6750">   
+                    <option value="PF6752"> 
+                    <option value="PF6753"> 
+                    <!-- Adicione mais códigos aqui se precisar -->
+                </datalist>
+            </div>
+
+            <div class="form-group">
+                <label for="executantes">Executantes:</label>
+                <textarea id="executantes" name="executantes" placeholder="Digite os nomes dos técnicos..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="atividades">Atividades Realizadas:</label>
+                <textarea id="atividades" name="atividades" placeholder="Descreva as atividades..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="pendencias">Pendências:</label>
+                <textarea id="pendencias" name="pendencias" placeholder="Descreva as pendências..."></textarea>
+            </div>
+
+            <div class="form-group">
+                <label for="desvios">Desvios:</label>
+                <textarea id="desvios" name="desvios" placeholder="Descreva os desvios encontrados..."></textarea>
+            </div>
+
+            <hr style="border: 0; height: 1px; background: #ddd; margin: 25px 0;">
+
+            <!-- Botão modificado para chamar a função JavaScript -->
+            <button type="button" class="btn-submit" onclick="processarRelatorio()">Gerar e Exibir Relatório</button>
+
+        </form>
+
+        <!-- Área de output para mostrar o resultado do formulário -->
+        <div id="relatorio-output"></div>
+    </div>
+
+    <script>
+        /**
+         * Função para processar os dados do formulário localmente,
+         * sem depender de servidor (100% autônomo).
+         */
+        function processarRelatorio() {
+            const form = document.getElementById('manutencao-form');
+            
+            // Verifica se os campos obrigatórios estão preenchidos
+            if (!form.checkValidity()) {
+                // Se não estiver válido, dispara a validação nativa do navegador
+                form.reportValidity();
+                return;
+            }
+
+            const formData = new FormData(form);
+            const data = {};
+            
+            for (let [key, value] of formData.entries()) {
+                data[key] = value.trim(); // Remove espaços extras
+            }
+
+            // Formata o texto de saída com tags HTML para negrito
+            const outputDiv = document.getElementById('relatorio-output');
+            
+            let output = `
+                <strong style="font-size: 1.2em;">RELATÓRIO DE MANUTENÇÃO PREVENTIVA</strong>
+                
+                <br><br>
+                <strong>Data:</strong> ${data.data_manutencao || 'N/A'}
+                <strong>Equipamento/Código:</strong> ${data.equipamento || 'N/A'}
+                
+                <hr style="margin: 10px 0; border: 0; border-top: 1px dashed #bbb;">
+                
+                <strong>Executantes:</strong> 
+                <p style="margin: 5px 0 10px 10px;">${data.executantes || 'Nenhum executante informado.'}</p>
+                
+                <strong>Atividades Realizadas:</strong> 
+                <p style="margin: 5px 0 10px 10px;">${data.atividades || 'Nenhuma atividade registrada.'}</p>
+                
+                <strong>Pendências:</strong> 
+                <p style="margin: 5px 0 10px 10px;">${data.pendencias || 'Nenhuma pendência encontrada.'}</p>
+                
+                <strong>Desvios:</strong> 
+                <p style="margin: 5px 0 0 10px;">${data.desvios || 'Nenhum desvio encontrado.'}</p>
+                
+                <br>
+                <em style="color: #6c757d;">(Copie o texto acima para o seu registro ou e-mail.)</em>
+            `.trim();
+
+            // Exibe o relatório na tela
+            outputDiv.innerHTML = output;
+            outputDiv.style.display = 'block';
+            
+            // Faz a tela rolar para mostrar o resultado
+            outputDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+
+        }
+    </script>
+
+</body>
+</html>
