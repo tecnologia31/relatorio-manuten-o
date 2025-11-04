@@ -1,17 +1,11 @@
-from flask import Flask, request, render_template_string
-
-# Configuração inicial do Flask
-app = Flask(__name__)
-
-# O HTML do nosso formulário e da página de resultados.
-HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Relatório</title>
+    <title>Gerador de Relatório (JS)</title>
     <style>
+        /* CSS do seu projeto (inalterado) */
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
         h2, h3, h4 { color: #333; }
         form { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
@@ -24,14 +18,10 @@ HTML_TEMPLATE = """
             border: 1px solid #ccc;
             font-family: Arial, sans-serif;
         }
-        /* Ajuste para inputs dentro de grids não estourarem */
         .equip-grid-2-col input[type="text"] {
-             width: 90%; /* Ajuste fino */
+             width: 90%;
         }
-        
         textarea { height: 100px; }
-        
-        /* Estilos dos botões */
         button {
             background-color: #007bff;
             color: white;
@@ -43,37 +33,29 @@ HTML_TEMPLATE = """
             transition: background-color 0.3s;
         }
         button:hover { background-color: #0056b3; }
-        
         button.add-equip {
-            background-color: #28a745; /* Verde */
+            background-color: #28a745;
             font-size: 14px;
             padding: 8px 12px;
             margin-top: 10px;
         }
         button.add-equip:hover { background-color: #218838; }
-
-        /* Estilo para o botão de remoção */
         button.remove-equip {
-            background-color: #dc3545; /* Vermelho */
+            background-color: #dc3545;
             padding: 5px 10px;
             font-size: 12px;
             float: right; 
         }
         button.remove-equip:hover { background-color: #c82333; }
-
-
-        /* Estilo do relatório final */
         pre {
             background-color: #eee;
             border: 1px dashed #ccc;
             padding: 15px;
-            white-space: pre-wrap; 
-            word-wrap: break-word; 
+            white-space: pre-wrap;
+            word-wrap: break-word;
             font-family: monospace;
             font-size: 14px;
         }
-        
-        /* Div para cada equipamento adicionado */
         .equip-bloco {
             border: 1px solid #ccc;
             border-radius: 5px;
@@ -82,8 +64,6 @@ HTML_TEMPLATE = """
             background: #fdfdfd;
             position: relative;
         }
-
-        /* Grid p/ Equipamento */
         .equip-grid-2-col {
             display: grid;
             grid-template-columns: 2fr 1fr;
@@ -100,10 +80,10 @@ HTML_TEMPLATE = """
     <h2>Gerador de Relatório de Manutenção</h2>
     <p>Preencha os campos abaixo para gerar o relatório padronizado.</p>
 
-    <form method="POST">
+    <form id="relatorio-form"> 
         <div>
             <label for="data_manutencao">Data da Manutenção (ex: 17/10/25):</label>
-            <input type="text" id="data_manutencao" name="data_manutencao">
+            <input type="text" id="data_manutencao" name="data_manutencao" required>
         </div>
         <div>
             <label for="executantes">Executantes (um por linha):</label>
@@ -116,8 +96,6 @@ HTML_TEMPLATE = """
         <div id="equipamentos-container">
             </div>
         
-        <input type="hidden" name="equip_count" id="equip_count" value="0">
-        
         <button type="button" class="add-equip" onclick="addEquipamento()">
             + Adicionar Equipamento
         </button>
@@ -129,61 +107,128 @@ HTML_TEMPLATE = """
             <textarea id="justificativa_obs" name="justificativa_obs"></textarea>
         </div>
 
-        <button type="submit">Gerar Relatório</button>
+        <button type="button" onclick="gerarRelatorio()">Gerar Relatório</button>
     </form>
 
     <h3>Relatório Gerado (Pronto para Copiar):</h3>
-    <pre>{{ relatorio_gerado }}</pre>
+    <pre id="relatorio-final"></pre>
 
 
     <script>
-        let equipCount = 0; 
+        let uniqueEquipId = 0; // ID único para garantir a referência correta no DOM
 
         function addEquipamento() {
-            equipCount++;
-            document.getElementById('equip_count').value = equipCount;
+            uniqueEquipId++;
+            const currentId = uniqueEquipId; // Usa o ID único atual
             const container = document.getElementById('equipamentos-container');
             const newEquip = document.createElement('div');
             newEquip.className = 'equip-bloco';
-            newEquip.setAttribute('data-id', equipCount); 
+            // Usa o ID único como o ID do bloco
+            newEquip.id = `equipamento-${currentId}`; 
             
             newEquip.innerHTML = `
                 <h4>
-                    Equipamento #${equipCount}
-                    <button type="button" class="remove-equip" onclick="removeEquipamento(this)">
+                    Equipamento #${currentId}
+                    <button type="button" class="remove-equip" onclick="removeEquipamento(${currentId})">
                         Remover
                     </button>
                 </h4>
                 
                 <div class="equip-grid-2-col">
                     <div>
-                        <label for="equip_nome_${equipCount}">Nome do Equipamento (digitar ou clicar para ver opções):</label>
-                        <input type="text" id="equip_nome_${equipCount}" name="equip_nome_${equipCount}" placeholder="Ex: PF1146" list="lista-equipamentos">
+                        <label for="equip_nome_${currentId}">Nome do Equipamento (digitar ou clicar para ver opções):</label>
+                        <input type="text" id="equip_nome_${currentId}" name="equip_nome_${currentId}" placeholder="Ex: PF1146" list="lista-equipamentos">
                     </div>
                     <div>
-                        <label for="equip_realizado_${equipCount}">Realizado (%):</label>
-                        <input type="text" id="equip_realizado_${equipCount}" name="equip_realizado_${equipCount}" value="100%">
+                        <label for="equip_realizado_${currentId}">Realizado (%):</label>
+                        <input type="text" id="equip_realizado_${currentId}" name="equip_realizado_${currentId}" value="100%">
                     </div>
                 </div>
 
                 <div>
-                    <label for="atividades_${equipCount}">Atividades Realizadas:</label>
-                    <textarea id="atividades_${equipCount}" name="atividades_${equipCount}"></textarea>
+                    <label for="atividades_${currentId}">Atividades Realizadas:</label>
+                    <textarea id="atividades_${currentId}" name="atividades_${currentId}"></textarea>
                 </div>
                 <div>
-                    <label for="pendencias_${equipCount}">Pendências:</label>
-                    <textarea id="pendencias_${equipCount}" name="pendencias_${equipCount}"></textarea>
+                    <label for="pendencias_${currentId}">Pendências:</label>
+                    <textarea id="pendencias_${currentId}" name="pendencias_${currentId}"></textarea>
                 </div>
             `;
             container.appendChild(newEquip);
         }
         
-        function removeEquipamento(button) {
-            const equipBloco = button.closest('.equip-bloco');
+        function removeEquipamento(id) {
+            const equipBloco = document.getElementById(`equipamento-${id}`);
             if (equipBloco) {
                 equipBloco.remove();
             }
         }
+
+        // --- NOVA FUNÇÃO: GERAÇÃO DO RELATÓRIO EM JAVASCRIPT ---
+        function gerarRelatorio() {
+            // 1. Coletar dados gerais
+            const data = document.getElementById('data_manutencao').value;
+            const executantes = document.getElementById('executantes').value;
+            const justificativaObs = document.getElementById('justificativa_obs').value;
+
+            // 2. Coletar dados dos equipamentos
+            let atividadesTexto = "";
+            let pendenciasTexto = "";
+            
+            // Pega todos os blocos de equipamento atualmente no DOM
+            const equipamentos = document.querySelectorAll('#equipamentos-container .equip-bloco');
+
+            equipamentos.forEach(bloco => {
+                // Pega o ID único do bloco para buscar os inputs
+                const id = bloco.id.split('-')[1]; 
+
+                // Acessa os campos usando o ID
+                const nomeInput = document.getElementById(`equip_nome_${id}`);
+                const realizadoInput = document.getElementById(`equip_realizado_${id}`);
+                const atividadesInput = document.getElementById(`atividades_${id}`);
+                const pendenciasInput = document.getElementById(`pendencias_${id}`);
+
+                const nome = nomeInput ? nomeInput.value.trim() : '';
+                const realizadoPerc = realizadoInput ? realizadoInput.value.replace('%', '').trim() : '100';
+                const atividade = atividadesInput ? atividadesInput.value.trim() : '';
+                const pendencia = pendenciasInput ? pendenciasInput.value.trim() : '';
+
+                if (nome) {
+                    const nomeUpper = nome.toUpperCase(); 
+                    
+                    if (atividade) {
+                        atividadesTexto += `${nomeUpper} (Realizado: ${realizadoPerc}%):\n${atividade}\n\n`;
+                    }
+                    
+                    if (pendencia) {
+                        pendenciasTexto += `${nomeUpper}:\n${pendencia}\n\n`;
+                    }
+                }
+            });
+
+            // 3. Montar o relatório final
+            const relatorioFinal = `
+MANUTENÇÃO PREVENTIVA - ${data}
+
+Executantes:
+${executantes}
+------------------------------------
+Atividades realizadas:
+${atividadesTexto.trim()}
+
+------------------------------------
+Pendências
+${pendenciasTexto.trim()}
+-----------------------------------------
+OBSERVAÇÕES GERAIS
+${justificativaObs}
+-----------------------------------------
+`;
+            
+            // 4. Injetar o relatório no elemento <pre>
+            document.getElementById('relatorio-final').textContent = relatorioFinal.trim();
+        }
+        // --- FIM NOVA FUNÇÃO ---
     </script>
     
     <datalist id="lista-equipamentos">
@@ -201,69 +246,5 @@ HTML_TEMPLATE = """
         <option value="PF6750">
     </datalist>
 
-    </body>
+</body>
 </html>
-"""
-
-# Esta é a rota principal da nossa aplicação
-@app.route('/', methods=['GET', 'POST'])
-def home():
-    relatorio_final = ""
-
-    if request.method == 'POST':
-        # 1. Coletar dados gerais do formulário
-        data = request.form.get('data_manutencao')
-        executantes = request.form.get('executantes')
-        justificativa_obs = request.form.get('justificativa_obs')
-
-        # 2. Coletar dados DINÂMICOS dos equipamentos
-        atividades_texto = ""
-        pendencias_texto = ""
-        
-        # Pega o contador MÁXIMO gerado pelo JavaScript
-        count_str = request.form.get('equip_count', '0')
-        count = int(count_str) if count_str.isdigit() else 0
-
-        # O loop itera de 1 até o COUNT MÁXIMO (o Flask ignora os campos removidos)
-        for i in range(1, count + 1):
-            nome = request.form.get(f'equip_nome_{i}')
-            # Limpa o % e garante valor padrão se necessário
-            realizado_perc = request.form.get(f'equip_realizado_{i}', '100%').replace('%', '')
-            
-            atividade = request.form.get(f'atividades_{i}')
-            pendencia = request.form.get(f'pendencias_{i}')
-            
-            if nome and nome.strip():
-                nome_upper = nome.strip().upper() 
-                
-                if atividade and atividade.strip():
-                    atividades_texto += f"{nome_upper} (Realizado: {realizado_perc}%):\n{atividade}\n\n"
-                    
-                if pendencia and pendencia.strip():
-                    pendencias_texto += f"{nome_upper}:\n{pendencia}\n\n"
-
-        # 3. Montar o relatório final com a formatação
-        relatorio_final = f"""
-MANUTENÇÃO PREVENTIVA - {data}
-
-Executantes:
-{executantes}
-------------------------------------
-Atividades realizadas:
-{atividades_texto.strip()}
-
-------------------------------------
-Pendências
-{pendencias_texto.strip()}
------------------------------------------
-OBSERVAÇÕES GERAIS
-{justificativa_obs}
------------------------------------------
-"""
-
-    # 4. Renderizar a página HTML, passando o relatório gerado (ou vazio)
-    return render_template_string(HTML_TEMPLATE, relatorio_gerado=relatorio_final)
-
-# Adiciona a execução do Flask
-if __name__ == '__main__':
-    app.run(debug=True)
