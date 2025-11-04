@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Gerador de Relatório (JS)</title>
     <style>
-        /* CSS do seu projeto (inalterado) */
+        /* CSS do seu projeto */
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
         h2, h3, h4 { color: #333; }
         form { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
         div { margin-bottom: 15px; }
         label { display: block; margin-bottom: 5px; font-weight: bold; }
-        input[type="text"], textarea {
+        /* Adicionado o seletor select, junto com os inputs e textareas */
+        input[type="text"], input[type="date"], textarea, select { 
             width: 95%;
             padding: 8px;
             border-radius: 4px;
@@ -82,8 +83,16 @@
 
     <form id="relatorio-form"> 
         <div>
-            <label for="data_manutencao">Data da Manutenção (ex: 17/10/25):</label>
-            <input type="text" id="data_manutencao" name="data_manutencao" required>
+            <label for="tipo_manutencao">Tipo de Manutenção:</label>
+            <select id="tipo_manutencao" name="tipo_manutencao" required>
+                <option value="PREVENTIVA" selected>Preventiva</option>
+                <option value="CORRETIVA">Corretiva</option>
+            </select>
+        </div>
+        
+        <div>
+            <label for="data_manutencao">Data da Manutenção:</label>
+            <input type="date" id="data_manutencao" name="data_manutencao" required>
         </div>
         <div>
             <label for="executantes">Executantes (um por linha):</label>
@@ -115,15 +124,14 @@
 
 
     <script>
-        let uniqueEquipId = 0; // ID único para garantir a referência correta no DOM
+        let uniqueEquipId = 0;
 
         function addEquipamento() {
             uniqueEquipId++;
-            const currentId = uniqueEquipId; // Usa o ID único atual
+            const currentId = uniqueEquipId;
             const container = document.getElementById('equipamentos-container');
             const newEquip = document.createElement('div');
             newEquip.className = 'equip-bloco';
-            // Usa o ID único como o ID do bloco
             newEquip.id = `equipamento-${currentId}`; 
             
             newEquip.innerHTML = `
@@ -164,25 +172,33 @@
             }
         }
 
-        // --- NOVA FUNÇÃO: GERAÇÃO DO RELATÓRIO EM JAVASCRIPT ---
         function gerarRelatorio() {
             // 1. Coletar dados gerais
+            
+            // NOVO: Capturar o tipo de manutenção selecionado
+            const tipoManutencao = document.getElementById('tipo_manutencao').value; 
+
             const data = document.getElementById('data_manutencao').value;
             const executantes = document.getElementById('executantes').value;
             const justificativaObs = document.getElementById('justificativa_obs').value;
+
+            // Opcional: Reformatar data de AAAA-MM-DD para DD/MM/AAAA para o relatório
+            let dataFormatada = data;
+            if (data && data.includes('-')) {
+                 const partes = data.split('-');
+                 // partes[0]=AAAA, partes[1]=MM, partes[2]=DD
+                 dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
+            }
 
             // 2. Coletar dados dos equipamentos
             let atividadesTexto = "";
             let pendenciasTexto = "";
             
-            // Pega todos os blocos de equipamento atualmente no DOM
             const equipamentos = document.querySelectorAll('#equipamentos-container .equip-bloco');
 
             equipamentos.forEach(bloco => {
-                // Pega o ID único do bloco para buscar os inputs
                 const id = bloco.id.split('-')[1]; 
 
-                // Acessa os campos usando o ID
                 const nomeInput = document.getElementById(`equip_nome_${id}`);
                 const realizadoInput = document.getElementById(`equip_realizado_${id}`);
                 const atividadesInput = document.getElementById(`atividades_${id}`);
@@ -207,8 +223,9 @@
             });
 
             // 3. Montar o relatório final
+            // USO DO tipoManutencao no cabeçalho
             const relatorioFinal = `
-MANUTENÇÃO PREVENTIVA - ${data}
+MANUTENÇÃO ${tipoManutencao} - ${dataFormatada}
 
 Executantes:
 ${executantes}
@@ -228,7 +245,6 @@ ${justificativaObs}
             // 4. Injetar o relatório no elemento <pre>
             document.getElementById('relatorio-final').textContent = relatorioFinal.trim();
         }
-        // --- FIM NOVA FUNÇÃO ---
     </script>
     
     <datalist id="lista-equipamentos">
