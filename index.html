@@ -105,8 +105,7 @@ HTML_TEMPLATE = """
         <h3>Equipamentos</h3>
         
         <div id="equipamentos-container">
-            <!-- Blocos de equipamento entram aqui via JS -->
-        </div>
+            </div>
         
         <input type="hidden" name="equip_count" id="equip_count" value="0">
         
@@ -115,8 +114,6 @@ HTML_TEMPLATE = """
         </button>
         
         <hr>
-        
-        <!-- === SEÇÃO DE ACOMPANHAMENTO REMOVIDA === -->
         
         <div>
             <label for="justificativa_obs">Observações Gerais:</label>
@@ -147,7 +144,7 @@ HTML_TEMPLATE = """
                 <div class="equip-grid-2-col">
                     <div>
                         <label for="equip_nome_${equipCount}">Nome do Equipamento:</label>
-                        <input type="text" id="equip_nome_${equipCount}" name="equip_nome_${equipCount}" placeholder="Ex: PF1146">
+                        <input type="text" id="equip_nome_${equipCount}" name="equip_nome_${equipCount}" placeholder="Ex: PF1146" list="lista-equipamentos">
                     </div>
                     <div>
                         <label for="equip_realizado_${equipCount}">Realizado (%):</label>
@@ -163,29 +160,27 @@ HTML_TEMPLATE = """
                     <label for="pendencias_${equipCount}">Pendências:</label>
                     <textarea id="pendencias_${equipCount}" name="pendencias_${equipCount}"></textarea>
                 </div>
-                <datalist id="lista-equipamentos">
-                    <option value="PF1105">
-                    <option value="PF1111">
-                    <option value="PF1115">
-                    <option value="PF1120">
-                    <option value="PF1140">
-                    <option value="PF1142">
-                    <option value="PF1144">
-                    <option value="PF1145"> 
-                    <option value="PF1146">
-                    <option value="PF1147">
-                    <option value="PF1148">
-                    <option value="PF6750">   
-                    <option value="PF6752"> 
-                    <option value="PF6753"> 
-                    <!-- Adicione mais códigos aqui se precisar -->
-                </datalist>
-            </div>
             `;
             // --- FIM DA MUDANÇA ---
             container.appendChild(newEquip);
         }
     </script>
+    
+    <datalist id="lista-equipamentos">
+        <option value="PF1105">
+        <option value="PF1111">
+        <option value="PF1115">
+        <option value="PF1120">
+        <option value="PF1140">
+        <option value="PF1142">
+        <option value="PF1144">
+        <option value="PF1145"> 
+        <option value="PF1146">
+        <option value="PF1147">
+        <option value="PF1148">
+        <option value="PF6750">
+    </datalist>
+
     </body>
 </html>
 """
@@ -213,7 +208,7 @@ def home():
         for i in range(1, count + 1):
             nome = request.form.get(f'equip_nome_{i}')
             # --- NOVO CAMPO COLETADO ---
-            realizado_perc = request.form.get(f'equip_realizado_{i}', '100') # Padrão 100 se vazio
+            realizado_perc = request.form.get(f'equip_realizado_{i}', '100%').replace('%', '') # Padrão 100%
             
             atividade = request.form.get(f'atividades_{i}')
             pendencia = request.form.get(f'pendencias_{i}')
@@ -250,3 +245,9 @@ OBSERVAÇÕES GERAIS
 
     # 4. Renderizar a página HTML, passando o relatório gerado (ou vazio)
     return render_template_string(HTML_TEMPLATE, relatorio_gerado=relatorio_final)
+
+# Adiciona a execução do Flask
+if __name__ == '__main__':
+    # Use host='0.0.0.0' para rodar em um servidor externo ou rede local
+    # app.run(debug=True, host='0.0.0.0') 
+    app.run(debug=True)
