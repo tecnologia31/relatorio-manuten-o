@@ -4,7 +4,7 @@ from flask import Flask, request, render_template_string
 app = Flask(__name__)
 
 # O HTML do nosso formulário e da página de resultados.
-# AGORA com % por equipamento e sem a seção de Acompanhamento do Plano.
+# AGORA com % por equipamento e SEM a seção de Acompanhamento do Plano.
 HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="pt-br">
@@ -41,6 +41,7 @@ HTML_TEMPLATE = """
             border-radius: 4px;
             cursor: pointer;
             font-size: 16px;
+            transition: background-color 0.3s; /* Transição para hover */
         }
         button:hover { background-color: #0056b3; }
         
@@ -51,6 +52,16 @@ HTML_TEMPLATE = """
             margin-top: 10px;
         }
         button.add-equip:hover { background-color: #218838; }
+
+        /* Estilo para o botão de remoção */
+        button.remove-equip {
+            background-color: #dc3545; /* Vermelho */
+            padding: 5px 10px;
+            font-size: 12px;
+            float: right; /* Alinha à direita dentro do bloco */
+        }
+        button.remove-equip:hover { background-color: #c82333; }
+
 
         /* Estilo do relatório final */
         pre {
@@ -65,11 +76,12 @@ HTML_TEMPLATE = """
         
         /* Div para cada equipamento adicionado */
         .equip-bloco {
-            border: 1px solid #eee;
+            border: 1px solid #ccc;
             border-radius: 5px;
             padding: 15px;
             margin-top: 10px;
             background: #fdfdfd;
+            position: relative; /* Necessário para posicionar o botão remove */
         }
 
         /* --- NOVO ESTILO (Grid p/ Equipamento) --- */
@@ -77,6 +89,7 @@ HTML_TEMPLATE = """
             display: grid;
             grid-template-columns: 2fr 1fr; /* 2/3 para nome, 1/3 para % */
             gap: 15px;
+            margin-top: 10px; /* Espaçamento após o título/botão */
         }
         .equip-grid-2-col div {
             margin-bottom: 0;
@@ -128,18 +141,27 @@ HTML_TEMPLATE = """
 
 
     <script>
-        let equipCount = 0;
+        // Não resetamos equipCount, pois ele deve ser único para garantir 
+        // que o Python receba todos os campos (Ex: equip_nome_1, equip_nome_2)
+        let equipCount = 0; 
 
         function addEquipamento() {
             equipCount++;
             document.getElementById('equip_count').value = equipCount;
             const container = document.getElementById('equipamentos-container');
             const newEquip = document.createElement('div');
-            newEquip.className = 'equip-bloco'; 
+            // 'data-id' é importante para rastrear e remover este bloco específico
+            newEquip.className = 'equip-bloco';
+            newEquip.setAttribute('data-id', equipCount); 
             
-            // --- MUDANÇA AQUI: Adicionado grid e campo de % ---
+            // Inserimos o botão de remover ao lado do título
             newEquip.innerHTML = `
-                <h4>Equipamento #${equipCount}</h4>
+                <h4>
+                    Equipamento #${equipCount}
+                    <button type="button" class="remove-equip" onclick="removeEquipamento(this)">
+                        Remover
+                    </button>
+                </h4>
                 
                 <div class="equip-grid-2-col">
                     <div>
@@ -161,9 +183,23 @@ HTML_TEMPLATE = """
                     <textarea id="pendencias_${equipCount}" name="pendencias_${equipCount}"></textarea>
                 </div>
             `;
-            // --- FIM DA MUDANÇA ---
             container.appendChild(newEquip);
         }
+        
+        // --- NOVA FUNÇÃO PARA REMOVER EQUIPAMENTO ---
+        function removeEquipamento(button) {
+            // Encontra o elemento pai mais próximo com a classe 'equip-bloco'
+            const equipBloco = button.closest('.equip-bloco');
+            if (equipBloco) {
+                // Remove o bloco do container
+                equipBloco.remove();
+                
+                // Nota: O equip_count (campo hidden) é mantido, garantindo que
+                // o Python itere de 1 até o máximo gerado (equipCount) no POST.
+                // O Flask irá simplesmente ignorar os números de campos que foram removidos.
+            }
+        }
+        // --- FIM NOVA FUNÇÃO ---
     </script>
     
     <datalist id="lista-equipamentos">
@@ -194,37 +230,36 @@ def home():
         # 1. Coletar dados gerais do formulário
         data = request.form.get('data_manutencao')
         executantes = request.form.get('executantes')
-        
-        # Campos de acompanhamento do plano foram removidos
         justificativa_obs = request.form.get('justificativa_obs')
 
         # 2. Coletar dados DINÂMICOS dos equipamentos
         atividades_texto = ""
         pendencias_texto = ""
         
+        # Pega o contador MÁXIMO gerado pelo JavaScript
         count_str = request.form.get('equip_count', '0')
         count = int(count_str) if count_str.isdigit() else 0
 
+        # O loop vai de 1 até o COUNT MÁXIMO, e o Flask busca os campos existentes.
+        # Campos de equipamentos removidos simplesmente terão valores None/vazios e serão ignorados.
         for i in range(1, count + 1):
             nome = request.form.get(f'equip_nome_{i}')
-            # --- NOVO CAMPO COLETADO ---
-            realizado_perc = request.form.get(f'equip_realizado_{i}', '100%').replace('%', '') # Padrão 100%
+            realizado_perc = request.form.get(f'equip_realizado_{i}', '100%').replace('%', '')
             
             atividade = request.form.get(f'atividades_{i}')
             pendencia = request.form.get(f'pendencias_{i}')
             
+            # Garante que só processa equipamentos que existem (não foram removidos) e têm nome
             if nome and nome.strip():
                 nome_upper = nome.strip().upper() 
                 
                 if atividade and atividade.strip():
-                    # Adiciona a % ao lado do nome do equipamento
                     atividades_texto += f"{nome_upper} (Realizado: {realizado_perc}%):\n{atividade}\n\n"
                     
                 if pendencia and pendencia.strip():
-                    # Pendências não incluem a %
                     pendencias_texto += f"{nome_upper}:\n{pendencia}\n\n"
 
-        # 3. Montar o relatório final com a NOVA formatação
+        # 3. Montar o relatório final com a formatação
         relatorio_final = f"""
 MANUTENÇÃO PREVENTIVA - {data}
 
@@ -248,6 +283,4 @@ OBSERVAÇÕES GERAIS
 
 # Adiciona a execução do Flask
 if __name__ == '__main__':
-    # Use host='0.0.0.0' para rodar em um servidor externo ou rede local
-    # app.run(debug=True, host='0.0.0.0') 
     app.run(debug=True)
