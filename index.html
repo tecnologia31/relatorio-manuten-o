@@ -1,93 +1,168 @@
+from flask import Flask, request, render_template_string
+
+# Configuração inicial do Flask
+app = Flask(__name__)
+
+# O HTML do nosso formulário e da página de resultados.
+# AGORA com % por equipamento e sem a seção de Acompanhamento do Plano.
+HTML_TEMPLATE = """
 <!DOCTYPE html>
 <html lang="pt-br">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Relatório de Manutenção</title>
+    <title>Gerador de Relatório</title>
     <style>
-        /* Estilo básico para organizar o formulário */
         body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
-        .container { max-width: 800px; margin: auto; background: #fff; padding: 25px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
-        h1 { text-align: center; color: #1a1a1a; margin-bottom: 25px; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
-        .form-group { margin-bottom: 18px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; color: #333; }
-        
-        /* Inputs e Textareas ocupam 100% da largura */
-        input[type="text"],
-        input[type="date"],
-        input[list],
-        textarea {
-            width: 100%;
-            padding: 10px;
-            box-sizing: border-box; 
+        h2, h3, h4 { color: #333; }
+        form { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        div { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        input[type="text"], textarea {
+            width: 95%;
+            padding: 8px;
+            border-radius: 4px;
             border: 1px solid #ccc;
-            border-radius: 6px;
-            transition: border-color 0.3s, box-shadow 0.3s;
+            font-family: Arial, sans-serif;
         }
-        input:focus, textarea:focus {
-            border-color: #007bff;
-            box-shadow: 0 0 5px rgba(0, 123, 255, 0.3);
-            outline: none;
+        /* Ajuste para inputs dentro de grids não estourarem */
+        .equip-grid-2-col input[type="text"] {
+             width: 90%; /* Ajuste fino */
+        }
+        
+        textarea { height: 100px; }
+        
+        /* Estilos dos botões */
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover { background-color: #0056b3; }
+        
+        button.add-equip {
+            background-color: #28a745; /* Verde */
+            font-size: 14px;
+            padding: 8px 12px;
+            margin-top: 10px;
+        }
+        button.add-equip:hover { background-color: #218838; }
+
+        /* Estilo do relatório final */
+        pre {
+            background-color: #eee;
+            border: 1px dashed #ccc;
+            padding: 15px;
+            white-space: pre-wrap; /* Garante a quebra de linha */
+            word-wrap: break-word; /* Garante que palavras longas não estourem */
+            font-family: monospace;
+            font-size: 14px;
+        }
+        
+        /* Div para cada equipamento adicionado */
+        .equip-bloco {
+            border: 1px solid #eee;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            background: #fdfdfd;
         }
 
-        textarea { height: 120px; resize: vertical; }
-        
-        /* Botão estilizado */
-        .btn-submit { 
-            display: block;
-            width: 100%;
-            background-color: #007bff; 
-            color: white; 
-            padding: 14px 20px; 
-            border: none; 
-            border-radius: 6px; 
-            cursor: pointer; 
-            font-size: 18px; 
-            font-weight: bold;
-            transition: background-color 0.3s, transform 0.1s;
+        /* --- NOVO ESTILO (Grid p/ Equipamento) --- */
+        .equip-grid-2-col {
+            display: grid;
+            grid-template-columns: 2fr 1fr; /* 2/3 para nome, 1/3 para % */
+            gap: 15px;
         }
-        .btn-submit:hover { 
-            background-color: #0056b3; 
-            transform: translateY(-2px);
-            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+        .equip-grid-2-col div {
+            margin-bottom: 0;
         }
-        
-        /* Estilo para a mensagem de relatório */
-        #relatorio-output {
-            margin-top: 25px;
-            padding: 20px;
-            border: 1px solid #d4edda;
-            background-color: #e9f8f4;
-            border-radius: 8px;
-            white-space: pre-wrap; 
-            font-size: 15px;
-            color: #0c5460;
-            border-left: 6px solid #20c997; /* Borda lateral verde */
-            display: none; 
-            overflow-x: auto; /* Para rolagem em telas pequenas */
-        }
-        #relatorio-output strong {
-            color: #007bff;
-        }
+        /* --- FIM NOVO ESTILO --- */
+
+
     </style>
 </head>
 <body>
 
-    <div class="container">
-        <h1>MANUTENÇÃO PREVENTIVA</h1>
+    <h2>Gerador de Relatório de Manutenção</h2>
+    <p>Preencha os campos abaixo para gerar o relatório padronizado.</p>
+
+    <form method="POST">
+        <div>
+            <label for="data_manutencao">Data da Manutenção (ex: 17/10/25):</label>
+            <input type="text" id="data_manutencao" name="data_manutencao">
+        </div>
+        <div>
+            <label for="executantes">Executantes (um por linha):</label>
+            <textarea id="executantes" name="executantes" rows="3"></textarea>
+        </div>
+
+        <hr>
+        <h3>Equipamentos</h3>
         
-        <form id="manutencao-form">
+        <div id="equipamentos-container">
+            <!-- Blocos de equipamento entram aqui via JS -->
+        </div>
+        
+        <input type="hidden" name="equip_count" id="equip_count" value="0">
+        
+        <button type="button" class="add-equip" onclick="addEquipamento()">
+            + Adicionar Equipamento
+        </button>
+        
+        <hr>
+        
+        <!-- === SEÇÃO DE ACOMPANHAMENTO REMOVIDA === -->
+        
+        <div>
+            <label for="justificativa_obs">Observações Gerais:</label>
+            <textarea id="justificativa_obs" name="justificativa_obs"></textarea>
+        </div>
 
-            <div class="form-group">
-                <label for="data">Data da Manutenção:</label>
-                <input type="date" id="data" name="data_manutencao" required>
-            </div>
+        <button type="submit">Gerar Relatório</button>
+    </form>
 
-            <div class="form-group">
-                <label for="equipamento">Equipamento / Código PF:</label>
-                <!-- Datalist com os códigos que você forneceu -->
-                <input list="lista-equipamentos" id="equipamento" name="equipamento" placeholder="Digite ou selecione o código do equipamento (ex: PF1105)..." required>
+    <h3>Relatório Gerado (Pronto para Copiar):</h3>
+    <pre>{{ relatorio_gerado }}</pre>
+
+
+    <script>
+        let equipCount = 0;
+
+        function addEquipamento() {
+            equipCount++;
+            document.getElementById('equip_count').value = equipCount;
+            const container = document.getElementById('equipamentos-container');
+            const newEquip = document.createElement('div');
+            newEquip.className = 'equip-bloco'; 
+            
+            // --- MUDANÇA AQUI: Adicionado grid e campo de % ---
+            newEquip.innerHTML = `
+                <h4>Equipamento #${equipCount}</h4>
                 
+                <div class="equip-grid-2-col">
+                    <div>
+                        <label for="equip_nome_${equipCount}">Nome do Equipamento:</label>
+                        <input type="text" id="equip_nome_${equipCount}" name="equip_nome_${equipCount}" placeholder="Ex: PF1146">
+                    </div>
+                    <div>
+                        <label for="equip_realizado_${equipCount}">Realizado (%):</label>
+                        <input type="text" id="equip_realizado_${equipCount}" name="equip_realizado_${equipCount}" value="100%">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="atividades_${equipCount}">Atividades Realizadas:</label>
+                    <textarea id="atividades_${equipCount}" name="atividades_${equipCount}"></textarea>
+                </div>
+                <div>
+                    <label for="pendencias_${equipCount}">Pendências:</label>
+                    <textarea id="pendencias_${equipCount}" name="pendencias_${equipCount}"></textarea>
+                </div>
                 <datalist id="lista-equipamentos">
                     <option value="PF1105">
                     <option value="PF1111">
@@ -106,97 +181,72 @@
                     <!-- Adicione mais códigos aqui se precisar -->
                 </datalist>
             </div>
-
-            <div class="form-group">
-                <label for="executantes">Executantes:</label>
-                <textarea id="executantes" name="executantes" placeholder="Digite os nomes dos técnicos..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="atividades">Atividades Realizadas:</label>
-                <textarea id="atividades" name="atividades" placeholder="Descreva as atividades..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="pendencias">Pendências:</label>
-                <textarea id="pendencias" name="pendencias" placeholder="Descreva as pendências..."></textarea>
-            </div>
-
-            <div class="form-group">
-                <label for="desvios">Desvios:</label>
-                <textarea id="desvios" name="desvios" placeholder="Descreva os desvios encontrados..."></textarea>
-            </div>
-
-            <hr style="border: 0; height: 1px; background: #ddd; margin: 25px 0;">
-
-            <!-- Botão modificado para chamar a função JavaScript -->
-            <button type="button" class="btn-submit" onclick="processarRelatorio()">Gerar e Exibir Relatório</button>
-
-        </form>
-
-        <!-- Área de output para mostrar o resultado do formulário -->
-        <div id="relatorio-output"></div>
-    </div>
-
-    <script>
-        /**
-         * Função para processar os dados do formulário localmente,
-         * sem depender de servidor (100% autônomo).
-         */
-        function processarRelatorio() {
-            const form = document.getElementById('manutencao-form');
-            
-            // Verifica se os campos obrigatórios estão preenchidos
-            if (!form.checkValidity()) {
-                // Se não estiver válido, dispara a validação nativa do navegador
-                form.reportValidity();
-                return;
-            }
-
-            const formData = new FormData(form);
-            const data = {};
-            
-            for (let [key, value] of formData.entries()) {
-                data[key] = value.trim(); // Remove espaços extras
-            }
-
-            // Formata o texto de saída com tags HTML para negrito
-            const outputDiv = document.getElementById('relatorio-output');
-            
-            let output = `
-                <strong style="font-size: 1.2em;">RELATÓRIO DE MANUTENÇÃO PREVENTIVA</strong>
-                
-                <br><br>
-                <strong>Data:</strong> ${data.data_manutencao || 'N/A'}
-                <strong>Equipamento/Código:</strong> ${data.equipamento || 'N/A'}
-                
-                <hr style="margin: 10px 0; border: 0; border-top: 1px dashed #bbb;">
-                
-                <strong>Executantes:</strong> 
-                <p style="margin: 5px 0 10px 10px;">${data.executantes || 'Nenhum executante informado.'}</p>
-                
-                <strong>Atividades Realizadas:</strong> 
-                <p style="margin: 5px 0 10px 10px;">${data.atividades || 'Nenhuma atividade registrada.'}</p>
-                
-                <strong>Pendências:</strong> 
-                <p style="margin: 5px 0 10px 10px;">${data.pendencias || 'Nenhuma pendência encontrada.'}</p>
-                
-                <strong>Desvios:</strong> 
-                <p style="margin: 5px 0 0 10px;">${data.desvios || 'Nenhum desvio encontrado.'}</p>
-                
-                <br>
-                <em style="color: #6c757d;">(Copie o texto acima para o seu registro ou e-mail.)</em>
-            `.trim();
-
-            // Exibe o relatório na tela
-            outputDiv.innerHTML = output;
-            outputDiv.style.display = 'block';
-            
-            // Faz a tela rolar para mostrar o resultado
-            outputDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
-
+            `;
+            // --- FIM DA MUDANÇA ---
+            container.appendChild(newEquip);
         }
     </script>
-
-</body>
+    </body>
 </html>
+"""
+
+# Esta é a rota principal da nossa aplicação
+@app.route('/', methods=['GET', 'POST'])
+def home():
+    relatorio_final = "" # Começa com o relatório vazio
+
+    if request.method == 'POST':
+        # 1. Coletar dados gerais do formulário
+        data = request.form.get('data_manutencao')
+        executantes = request.form.get('executantes')
+        
+        # Campos de acompanhamento do plano foram removidos
+        justificativa_obs = request.form.get('justificativa_obs')
+
+        # 2. Coletar dados DINÂMICOS dos equipamentos
+        atividades_texto = ""
+        pendencias_texto = ""
+        
+        count_str = request.form.get('equip_count', '0')
+        count = int(count_str) if count_str.isdigit() else 0
+
+        for i in range(1, count + 1):
+            nome = request.form.get(f'equip_nome_{i}')
+            # --- NOVO CAMPO COLETADO ---
+            realizado_perc = request.form.get(f'equip_realizado_{i}', '100') # Padrão 100 se vazio
+            
+            atividade = request.form.get(f'atividades_{i}')
+            pendencia = request.form.get(f'pendencias_{i}')
+            
+            if nome and nome.strip():
+                nome_upper = nome.strip().upper() 
+                
+                if atividade and atividade.strip():
+                    # Adiciona a % ao lado do nome do equipamento
+                    atividades_texto += f"{nome_upper} (Realizado: {realizado_perc}%):\n{atividade}\n\n"
+                    
+                if pendencia and pendencia.strip():
+                    # Pendências não incluem a %
+                    pendencias_texto += f"{nome_upper}:\n{pendencia}\n\n"
+
+        # 3. Montar o relatório final com a NOVA formatação
+        relatorio_final = f"""
+MANUTENÇÃO PREVENTIVA - {data}
+
+Executantes:
+{executantes}
+------------------------------------
+Atividades realizadas:
+{atividades_texto.strip()}
+
+------------------------------------
+Pendências
+{pendencias_texto.strip()}
+-----------------------------------------
+OBSERVAÇÕES GERAIS
+{justificativa_obs}
+-----------------------------------------
+"""
+
+    # 4. Renderizar a página HTML, passando o relatório gerado (ou vazio)
+    return render_template_string(HTML_TEMPLATE, relatorio_gerado=relatorio_final)
