@@ -6,6 +6,8 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
     <title>Gerador de Relatórios – Manutenção Inteligente</title>
 </head>
 <body class="bg-light">
@@ -26,7 +28,7 @@
                     <div class="row g-3 mb-3">
                         <div class="col-md-6">
                             <label for="tipo_manutencao" class="form-label fw-bold">Tipo de Manutenção:</label>
-                            <select id="tipo_manutencao" name="tipo_manutencao" class="form-select" required>
+                            <select id="tipo_manutencao" name="tipo_manutencao" class="form-select auto-save" required>
                                 <option value="PREVENTIVA" selected>Preventiva</option>
                                 <option value="CORRETIVA">Corretiva</option>
                                 <option value="INSPEÇÃO">Inspeção</option>
@@ -35,13 +37,13 @@
                         </div>
                         <div class="col-md-6">
                             <label for="data_manutencao" class="form-label fw-bold">Data da Manutenção:</label>
-                            <input type="date" id="data_manutencao" name="data_manutencao" class="form-control" required>
+                            <input type="date" id="data_manutencao" name="data_manutencao" class="form-control auto-save" required>
                         </div>
                     </div>
 
                     <div class="mb-3">
                         <label for="executantes" class="form-label fw-bold">Executantes:</label>
-                        <textarea id="executantes" name="executantes" class="form-control" rows="3" placeholder="Ex: João Silva, Maria Souza (um por linha ou separados por vírgula)"></textarea>
+                        <textarea id="executantes" name="executantes" class="form-control auto-save" rows="3" placeholder="Ex: João Silva, Maria Souza (um por linha ou separados por vírgula)"></textarea>
                     </div>
 
                     <hr class="my-4">
@@ -58,7 +60,7 @@
                     
                     <div class="mb-3">
                         <label for="justificativa_obs" class="form-label fw-bold">Observações Gerais:</label>
-                        <textarea id="justificativa_obs" name="justificativa_obs" class="form-control" placeholder="Descreva qualquer observação geral, justificativa ou problema encontrado..."></textarea>
+                        <textarea id="justificativa_obs" name="justificativa_obs" class="form-control auto-save" rows="3" placeholder="Descreva qualquer observação geral, justificativa ou problema encontrado..."></textarea>
                     </div>
 
                     <div class="d-flex flex-wrap gap-2 mt-4">
@@ -67,6 +69,9 @@
                         </button>
                         <button type="button" class="btn btn-secondary" onclick="copiarRelatorio()">
                             <i class="bi bi-copy"></i> Copiar Relatório
+                        </button>
+                        <button type="button" class="btn btn-warning text-dark" onclick="baixarPDF()">
+                            <i class="bi bi-file-earmark-pdf"></i> Baixar em PDF
                         </button>
                         <button type="button" class="btn btn-outline-danger" onclick="limparCampos()">
                             <i class="bi bi-arrow-counterclockwise"></i> Limpar Campos
@@ -89,17 +94,6 @@
     <datalist id="lista-equipamentos">
         <option value="PF1105">
         <option value="PF1111">
-        <option value="PF1115">
-        <option value="PF1120">
-        <option value="PF1140">
-        <option value="PF1142">
-        <option value="PF1144">
-        <option value="PF1145"> 
-        <option value="PF1146">
-        <option value="PF1147">
-        <option value="PF1148">
-        <option value="PF6750">
-        <option value="PF6752">
         <option value="PF6753">
     </datalist>
 
@@ -107,26 +101,108 @@
 
     <script>
         let uniqueEquipId = 0;
+        const STORAGE_KEY = 'dadosRelatorioManutencao';
 
-        // 1.4: Define a data atual ao carregar a página
+        const TEMPLATES = {
+            'PREVENTIVA': {
+                atividades: "Conforme checklist de preventiva:\n- Limpeza e inspeção visual.\n- Lubrificação de componentes.\n- Reaperto de conexões.\n- Testes de funcionamento.",
+                pendencias: "Nenhuma pendência encontrada."
+            },
+            'CORRETIVA': {
+                atividades: "Análise da falha:\n- (Descrever a causa)\n\nPeça(s) substituída(s):\n- (Listar peças)\n\nTestes realizados após intervenção.",
+                pendencias: "Nenhuma pendência adicional."
+            },
+            'INSPEÇÃO': {
+                atividades: "Inspeção realizada nos seguintes pontos:\n- Mecânicos\n- Elétricos\n- Segurança\n- Operacionais",
+                pendencias: "Pontos de atenção para próxima preventiva:\n-"
+            },
+            'MELHORIA': {
+                atividades: "Implementação da melhoria:\n- (Descrever a melhoria)\n\nObjetivo:\n- (Descrever o objetivo)",
+                pendencias: "Monitorar performance após implementação."
+            },
+            'DEFAULT': { atividades: "", pendencias: "" }
+        };
+
+        // --- Funções de Inicialização e Persistência (sem alteração) ---
+
         document.addEventListener("DOMContentLoaded", function() {
-            setDefaultDate();
+            carregarEstadoFormulario();
+            document.querySelectorAll('.auto-save').forEach(element => {
+                element.addEventListener('input', salvarEstadoFormulario);
+            });
         });
 
         function setDefaultDate() {
             const dateInput = document.getElementById('data_manutencao');
-            // Formato AAAA-MM-DD
-            const today = new Date().toISOString().split('T')[0]; 
-            dateInput.value = today;
+            if (!dateInput.value) {
+                const today = new Date().toISOString().split('T')[0]; 
+                dateInput.value = today;
+            }
         }
 
-        function addEquipamento() {
-            uniqueEquipId++;
-            const currentId = uniqueEquipId;
+        function salvarEstadoFormulario() {
+            const dados = {
+                camposEstaticos: {},
+                equipamentos: [],
+                uniqueEquipId: uniqueEquipId
+            };
+            document.querySelectorAll('.auto-save').forEach(element => {
+                dados.camposEstaticos[element.id] = element.value;
+            });
+            document.querySelectorAll('#equipamentos-container .equip-bloco').forEach(bloco => {
+                const id = bloco.id.split('-')[1];
+                const equipamento = {
+                    id: id,
+                    nome: document.getElementById(`equip_nome_${id}`).value,
+                    realizado: document.getElementById(`equip_realizado_${id}`).value,
+                    atividades: document.getElementById(`atividades_${id}`).value,
+                    pendencias: document.getElementById(`pendencias_${id}`).value
+                };
+                dados.equipamentos.push(equipamento);
+            });
+            localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+        }
+
+        function carregarEstadoFormulario() {
+            const dadosSalvos = localStorage.getItem(STORAGE_KEY);
+            if (!dadosSalvos) {
+                setDefaultDate(); 
+                return;
+            }
+            const dados = JSON.parse(dadosSalvos);
+            if (dados.camposEstaticos) {
+                Object.keys(dados.camposEstaticos).forEach(key => {
+                    const element = document.getElementById(key);
+                    if (element) {
+                        element.value = dados.camposEstaticos[key];
+                    }
+                });
+            }
+            uniqueEquipId = dados.uniqueEquipId || 0;
+            if (dados.equipamentos) {
+                dados.equipamentos.forEach(equipData => {
+                    addEquipamento(equipData);
+                });
+            }
+            setDefaultDate(); 
+        }
+
+        // --- Funções de Equipamento (sem alteração) ---
+
+        function addEquipamento(dados = null) {
+            let currentId;
+            let isNew = false;
+            
+            if (dados) {
+                currentId = dados.id;
+            } else {
+                uniqueEquipId++;
+                currentId = uniqueEquipId;
+                isNew = true;
+            }
+
             const container = document.getElementById('equipamentos-container');
             const newEquip = document.createElement('div');
-            
-            // 1.1: Bloco de equipamento com classes Bootstrap
             newEquip.className = 'card equip-bloco mb-3';
             newEquip.id = `equipamento-${currentId}`; 
             
@@ -138,7 +214,6 @@
                             <i class="bi bi-trash"></i> Remover
                         </button>
                     </div>
-                    
                     <div class="row g-3">
                         <div class="col-md-8">
                             <label for="equip_nome_${currentId}" class="form-label">Nome do Equipamento:</label>
@@ -149,68 +224,126 @@
                             <input type="text" id="equip_realizado_${currentId}" name="equip_realizado_${currentId}" class="form-control" placeholder="Ex: 100%">
                         </div>
                     </div>
-
                     <div class="mt-3">
                         <label for="atividades_${currentId}" class="form-label">Atividades Realizadas:</label>
-                        <textarea id="atividades_${currentId}" name="atividades_${currentId}" class="form-control" rows="3" placeholder="Descreva as atividades executadas neste equipamento..."></textarea>
+                        <textarea id="atividades_${currentId}" name="atividades_${currentId}" class="form-control" rows="4" placeholder="Descreva as atividades executadas..."></textarea>
                     </div>
                     <div class="mt-3">
                         <label for="pendencias_${currentId}" class="form-label">Pendências:</label>
-                        <textarea id="pendencias_${currentId}" name="pendencias_${currentId}" class="form-control" rows="2" placeholder="Descreva as pendências ou problemas encontrados..."></textarea>
+                        <textarea id="pendencias_${currentId}" name="pendencias_${currentId}" class="form-control" rows="2" placeholder="Descreva as pendências..."></textarea>
                     </div>
                 </div>
             `;
             container.appendChild(newEquip);
+
+            const atividadesInput = document.getElementById(`atividades_${currentId}`);
+            const pendenciasInput = document.getElementById(`pendencias_${currentId}`);
+
+            if (isNew) {
+                const tipoManutencao = document.getElementById('tipo_manutencao').value;
+                const template = TEMPLATES[tipoManutencao] || TEMPLATES['DEFAULT'];
+                atividadesInput.value = template.atividades;
+                pendenciasInput.value = template.pendencias;
+            } else if (dados) {
+                document.getElementById(`equip_nome_${currentId}`).value = dados.nome;
+                document.getElementById(`equip_realizado_${currentId}`).value = dados.realizado;
+                atividadesInput.value = dados.atividades;
+                pendenciasInput.value = dados.pendencias;
+            }
+
+            document.querySelectorAll(`#equipamento-${currentId} input, #equipamento-${currentId} textarea`).forEach(el => {
+                el.addEventListener('input', salvarEstadoFormulario);
+            });
+
+            if (isNew) {
+                salvarEstadoFormulario();
+            }
         }
         
         function removeEquipamento(id) {
-            // Usa .closest() para garantir que o card correto seja removido
             const equipBloco = document.getElementById(`equipamento-${id}`);
             if (equipBloco) {
                 equipBloco.remove();
+                salvarEstadoFormulario();
             }
         }
 
-        // 1.6: Nova função para limpar todos os campos
+        // --- Funções de Ação (Gerar, Copiar, Limpar) ---
+
         function limparCampos() {
-            // Reseta o formulário (campos estáticos)
+            localStorage.removeItem(STORAGE_KEY);
             document.getElementById('relatorio-form').reset();
-            
-            // Remove os blocos de equipamento dinâmicos
             document.getElementById('equipamentos-container').innerHTML = '';
-            
-            // Limpa o resultado
             document.getElementById('relatorio-final').textContent = 'O seu relatório aparecerá aqui...';
-            
-            // Reseta o contador de ID (opcional, mas boa prática)
             uniqueEquipId = 0;
-            
-            // Redefine a data padrão
             setDefaultDate();
         }
 
-        // 1.5: Nova função para copiar o relatório
         function copiarRelatorio() {
             const relatorioTexto = document.getElementById('relatorio-final').textContent;
-            
-            // Verifica se não é o texto padrão
             if (relatorioTexto.trim() === 'O seu relatório aparecerá aqui...' || relatorioTexto.trim() === '') {
                 alert('Gere um relatório antes de tentar copiar!');
                 return;
             }
-
             navigator.clipboard.writeText(relatorioTexto)
                 .then(() => {
                     alert('Relatório copiado para a área de transferência!');
                 })
                 .catch(err => {
                     alert('Falha ao copiar. Tente manualmente.');
-                    console.error('Erro ao copiar: ', err);
                 });
         }
 
-        // Função principal (sem alteração na lógica, apenas formatação de data)
+        // 1.5: Nova função para Baixar PDF
+        function baixarPDF() {
+            const relatorioTexto = document.getElementById('relatorio-final').textContent;
+            
+            // 1. Valida se o relatório existe
+            if (relatorioTexto.trim() === 'O seu relatório aparecerá aqui...' || relatorioTexto.trim() === '') {
+                alert('Gere um relatório antes de tentar baixar o PDF!');
+                return;
+            }
+
+            // 2. Pega dados para o nome do arquivo
+            const data = document.getElementById('data_manutencao').value || 'data';
+            const tipo = document.getElementById('tipo_manutencao').value;
+            const filename = `Relatorio_${tipo}_${data}.pdf`;
+
+            try {
+                // 3. Inicializa o jsPDF
+                // Precisamos extrair o construtor do objeto global window.jspdf
+                const { jsPDF } = window.jspdf;
+                const doc = new jsPDF();
+
+                // 4. Define a fonte para Courier (monoespaçada) para bater com o <pre>
+                doc.setFont('Courier', 'normal');
+                doc.setFontSize(10); // Tamanho bom para leitura
+
+                // 5. Define margens e largura máxima do texto
+                const margin = 15; // 15mm de margem
+                const pageWidth = doc.internal.pageSize.getWidth();
+                const maxWidth = pageWidth - (margin * 2); // Largura máxima do texto
+
+                // 6. Adiciona o texto ao PDF
+                // O método .text() com 'maxWidth' cuida automaticamente de
+                // quebras de linha e até de criar novas páginas (auto-paginação).
+                doc.text(relatorioTexto, margin, margin, {
+                    maxWidth: maxWidth
+                });
+
+                // 7. Salva o arquivo
+                doc.save(filename);
+
+            } catch (error) {
+                alert('Ocorreu um erro ao gerar o PDF.');
+                console.error("Erro no jsPDF: ", error);
+            }
+        }
+
+
         function gerarRelatorio() {
+            // (Função sem alteração)
+            salvarEstadoFormulario();
             const tipoManutencao = document.getElementById('tipo_manutencao').value; 
             const data = document.getElementById('data_manutencao').value;
             const executantes = document.getElementById('executantes').value;
@@ -229,7 +362,6 @@
 
             equipamentos.forEach(bloco => {
                 const id = bloco.id.split('-')[1]; 
-
                 const nomeInput = document.getElementById(`equip_nome_${id}`);
                 const realizadoInput = document.getElementById(`equip_realizado_${id}`);
                 const atividadesInput = document.getElementById(`atividades_${id}`);
@@ -242,25 +374,21 @@
 
                 if (nome) {
                     const nomeUpper = nome.toUpperCase(); 
-                    // Adiciona o % se o usuário não digitou
                     const realizadoFinal = realizadoPerc ? (realizadoPerc.endsWith('%') ? realizadoPerc : `${realizadoPerc}%`) : 'N/A';
                     
                     if (atividade) {
                         atividadesTexto += `${nomeUpper} (Realizado: ${realizadoFinal}):\n${atividade}\n\n`;
                     }
-                    
                     if (pendencia) {
                         pendenciasTexto += `${nomeUpper}:\n${pendencia}\n\n`;
                     }
                 }
             });
 
-            // Tratamento para campos vazios
             const atividadesFinais = atividadesTexto.trim() || "Nenhuma atividade registrada.";
             const pendenciasFinais = pendenciasTexto.trim() || "Nenhuma pendência registrada.";
             const executantesFinais = executantes.trim() || "Nenhum executante listado.";
             const obsFinais = justificativaObs.trim() || "Nenhuma observação geral.";
-
 
             const relatorioFinal = `
 MANUTENÇÃO ${tipoManutencao} - ${dataFormatada}
