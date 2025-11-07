@@ -3,191 +3,225 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Gerador de Relatório (JS)</title>
-    <style>
-        /* CSS do seu projeto */
-        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
-        h2, h3, h4 { color: #333; }
-        form { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
-        div { margin-bottom: 15px; }
-        label { display: block; margin-bottom: 5px; font-weight: bold; }
-        /* Incluindo estilos para input[type="date"] e select */
-        input[type="text"], input[type="date"], textarea, select { 
-            width: 95%;
-            padding: 8px;
-            border-radius: 4px;
-            border: 1px solid #ccc;
-            font-family: Arial, sans-serif;
-        }
-        .equip-grid-2-col input[type="text"] {
-             width: 90%;
-        }
-        textarea { height: 100px; }
-        button {
-            background-color: #007bff;
-            color: white;
-            padding: 10px 15px;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-size: 16px;
-            transition: background-color 0.3s;
-        }
-        button:hover { background-color: #0056b3; }
-        button.add-equip {
-            background-color: #28a745;
-            font-size: 14px;
-            padding: 8px 12px;
-            margin-top: 10px;
-        }
-        button.add-equip:hover { background-color: #218838; }
-        button.remove-equip {
-            background-color: #dc3545;
-            padding: 5px 10px;
-            font-size: 12px;
-            float: right; 
-        }
-        button.remove-equip:hover { background-color: #c82333; }
-        pre {
-            background-color: #eee;
-            border: 1px dashed #ccc;
-            padding: 15px;
-            white-space: pre-wrap;
-            word-wrap: break-word;
-            font-family: monospace;
-            font-size: 14px;
-        }
-        .equip-bloco {
-            border: 1px solid #ccc;
-            border-radius: 5px;
-            padding: 15px;
-            margin-top: 10px;
-            background: #fdfdfd;
-            position: relative;
-        }
-        .equip-grid-2-col {
-            display: grid;
-            grid-template-columns: 2fr 1fr;
-            gap: 15px;
-            margin-top: 10px;
-        }
-        .equip-grid-2-col div {
-            margin-bottom: 0;
-        }
-    </style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    
+    <title>Gerador de Relatórios – Manutenção Inteligente</title>
 </head>
-<body>
+<body class="bg-light">
 
-    <h2>Gerador de Relatório de Manutenção</h2>
-    <p>Preencha os campos abaixo para gerar o relatório padronizado.</p>
-
-    <form id="relatorio-form"> 
-        <div>
-            <label for="tipo_manutencao">Tipo de Manutenção:</label>
-            <select id="tipo_manutencao" name="tipo_manutencao" required>
-                <option value="PREVENTIVA" selected>Preventiva</option>
-                <option value="CORRETIVA">Corretiva</option>
-            </select>
-        </div>
-        
-        <div>
-            <label for="data_manutencao">Data da Manutenção:</label>
-            <input type="date" id="data_manutencao" name="data_manutencao" required>
-        </div>
-        <div>
-            <label for="executantes">Executantes (um por linha):</label>
-            <textarea id="executantes" name="executantes" rows="3"></textarea>
+    <div class="container my-5">
+        <div class="text-center mb-4">
+            <h1 class="display-6">Gerador de Relatórios – Manutenção Inteligente</h1>
+            <p class="lead">
+                “Automatize, padronize e simplifique suas rotinas de manutenção.”
+            </p>
         </div>
 
-        <hr>
-        <h3>Equipamentos</h3>
-        
-        <div id="equipamentos-container">
+        <div class="card shadow-sm">
+            <div class="card-body p-4 p-md-5">
+                
+                <form id="relatorio-form"> 
+                    
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label for="tipo_manutencao" class="form-label fw-bold">Tipo de Manutenção:</label>
+                            <select id="tipo_manutencao" name="tipo_manutencao" class="form-select" required>
+                                <option value="PREVENTIVA" selected>Preventiva</option>
+                                <option value="CORRETIVA">Corretiva</option>
+                                <option value="INSPEÇÃO">Inspeção</option>
+                                <option value="MELHORIA">Melhoria</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="data_manutencao" class="form-label fw-bold">Data da Manutenção:</label>
+                            <input type="date" id="data_manutencao" name="data_manutencao" class="form-control" required>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label for="executantes" class="form-label fw-bold">Executantes:</label>
+                        <textarea id="executantes" name="executantes" class="form-control" rows="3" placeholder="Ex: João Silva, Maria Souza (um por linha ou separados por vírgula)"></textarea>
+                    </div>
+
+                    <hr class="my-4">
+                    
+                    <h3 class="mb-3">Equipamentos</h3>
+                    <div id="equipamentos-container" class="mb-3">
+                        </div>
+                    
+                    <button type="button" class="btn btn-success" onclick="addEquipamento()">
+                        <i class="bi bi-plus-circle"></i> Adicionar Equipamento
+                    </button>
+                    
+                    <hr class="my-4">
+                    
+                    <div class="mb-3">
+                        <label for="justificativa_obs" class="form-label fw-bold">Observações Gerais:</label>
+                        <textarea id="justificativa_obs" name="justificativa_obs" class="form-control" placeholder="Descreva qualquer observação geral, justificativa ou problema encontrado..."></textarea>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 mt-4">
+                        <button type="button" class="btn btn-primary btn-lg" onclick="gerarRelatorio()">
+                            <i class="bi bi-clipboard2-check"></i> Gerar Relatório
+                        </button>
+                        <button type="button" class="btn btn-secondary" onclick="copiarRelatorio()">
+                            <i class="bi bi-copy"></i> Copiar Relatório
+                        </button>
+                        <button type="button" class="btn btn-outline-danger" onclick="limparCampos()">
+                            <i class="bi bi-arrow-counterclockwise"></i> Limpar Campos
+                        </button>
+                    </div>
+                </form>
             </div>
-        
-        <button type="button" class="add-equip" onclick="addEquipamento()">
-            + Adicionar Equipamento
-        </button>
-        
-        <hr>
-        
-        <div>
-            <label for="justificativa_obs">Observações Gerais:</label>
-            <textarea id="justificativa_obs" name="justificativa_obs"></textarea>
         </div>
 
-        <button type="button" onclick="gerarRelatorio()">Gerar Relatório</button>
-    </form>
+        <div class="card shadow-sm mt-5">
+            <div class="card-header">
+                <h4 class="mb-0">Relatório Gerado (Pronto para Copiar):</h4>
+            </div>
+            <div class="card-body">
+                <pre id="relatorio-final" class="bg-dark text-light p-3 rounded" style="white-space: pre-wrap; word-wrap: break-word;">O seu relatório aparecerá aqui...</pre>
+            </div>
+        </div>
+    </div>
 
-    <h3>Relatório Gerado (Pronto para Copiar):</h3>
-    <pre id="relatorio-final"></pre>
+    <datalist id="lista-equipamentos">
+        <option value="PF1105">
+        <option value="PF1111">
+        <option value="PF1115">
+        <option value="PF1120">
+        <option value="PF1140">
+        <option value="PF1142">
+        <option value="PF1144">
+        <option value="PF1145"> 
+        <option value="PF1146">
+        <option value="PF1147">
+        <option value="PF1148">
+        <option value="PF6750">
+        <option value="PF6752">
+        <option value="PF6753">
+    </datalist>
 
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
 
     <script>
         let uniqueEquipId = 0;
+
+        // 1.4: Define a data atual ao carregar a página
+        document.addEventListener("DOMContentLoaded", function() {
+            setDefaultDate();
+        });
+
+        function setDefaultDate() {
+            const dateInput = document.getElementById('data_manutencao');
+            // Formato AAAA-MM-DD
+            const today = new Date().toISOString().split('T')[0]; 
+            dateInput.value = today;
+        }
 
         function addEquipamento() {
             uniqueEquipId++;
             const currentId = uniqueEquipId;
             const container = document.getElementById('equipamentos-container');
             const newEquip = document.createElement('div');
-            newEquip.className = 'equip-bloco';
+            
+            // 1.1: Bloco de equipamento com classes Bootstrap
+            newEquip.className = 'card equip-bloco mb-3';
             newEquip.id = `equipamento-${currentId}`; 
             
             newEquip.innerHTML = `
-                <h4>
-                    Equipamento #${currentId}
-                    <button type="button" class="remove-equip" onclick="removeEquipamento(${currentId})">
-                        Remover
-                    </button>
-                </h4>
-                
-                <div class="equip-grid-2-col">
-                    <div>
-                        <label for="equip_nome_${currentId}">Nome do Equipamento (digitar ou clicar para ver opções):</label>
-                        <input type="text" id="equip_nome_${currentId}" name="equip_nome_${currentId}" placeholder="Ex: PF1146" list="lista-equipamentos">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="mb-0">Equipamento #${currentId}</h5>
+                        <button type="button" class="btn btn-danger btn-sm" onclick="removeEquipamento(${currentId})">
+                            <i class="bi bi-trash"></i> Remover
+                        </button>
                     </div>
-                    <div>
-                        <label for="equip_realizado_${currentId}">Realizado (%):</label>
-                        <input type="text" id="equip_realizado_${currentId}" name="equip_realizado_${currentId}" value="">
+                    
+                    <div class="row g-3">
+                        <div class="col-md-8">
+                            <label for="equip_nome_${currentId}" class="form-label">Nome do Equipamento:</label>
+                            <input type="text" id="equip_nome_${currentId}" name="equip_nome_${currentId}" class="form-control" placeholder="Ex: PF1146 (digite ou selecione)" list="lista-equipamentos">
+                        </div>
+                        <div class="col-md-4">
+                            <label for="equip_realizado_${currentId}" class="form-label">Realizado (%):</label>
+                            <input type="text" id="equip_realizado_${currentId}" name="equip_realizado_${currentId}" class="form-control" placeholder="Ex: 100%">
+                        </div>
                     </div>
-                </div>
 
-                <div>
-                    <label for="atividades_${currentId}">Atividades Realizadas:</label>
-                    <textarea id="atividades_${currentId}" name="atividades_${currentId}"></textarea>
-                </div>
-                <div>
-                    <label for="pendencias_${currentId}">Pendências:</label>
-                    <textarea id="pendencias_${currentId}" name="pendencias_${currentId}"></textarea>
+                    <div class="mt-3">
+                        <label for="atividades_${currentId}" class="form-label">Atividades Realizadas:</label>
+                        <textarea id="atividades_${currentId}" name="atividades_${currentId}" class="form-control" rows="3" placeholder="Descreva as atividades executadas neste equipamento..."></textarea>
+                    </div>
+                    <div class="mt-3">
+                        <label for="pendencias_${currentId}" class="form-label">Pendências:</label>
+                        <textarea id="pendencias_${currentId}" name="pendencias_${currentId}" class="form-control" rows="2" placeholder="Descreva as pendências ou problemas encontrados..."></textarea>
+                    </div>
                 </div>
             `;
             container.appendChild(newEquip);
         }
         
         function removeEquipamento(id) {
+            // Usa .closest() para garantir que o card correto seja removido
             const equipBloco = document.getElementById(`equipamento-${id}`);
             if (equipBloco) {
                 equipBloco.remove();
             }
         }
 
+        // 1.6: Nova função para limpar todos os campos
+        function limparCampos() {
+            // Reseta o formulário (campos estáticos)
+            document.getElementById('relatorio-form').reset();
+            
+            // Remove os blocos de equipamento dinâmicos
+            document.getElementById('equipamentos-container').innerHTML = '';
+            
+            // Limpa o resultado
+            document.getElementById('relatorio-final').textContent = 'O seu relatório aparecerá aqui...';
+            
+            // Reseta o contador de ID (opcional, mas boa prática)
+            uniqueEquipId = 0;
+            
+            // Redefine a data padrão
+            setDefaultDate();
+        }
+
+        // 1.5: Nova função para copiar o relatório
+        function copiarRelatorio() {
+            const relatorioTexto = document.getElementById('relatorio-final').textContent;
+            
+            // Verifica se não é o texto padrão
+            if (relatorioTexto.trim() === 'O seu relatório aparecerá aqui...' || relatorioTexto.trim() === '') {
+                alert('Gere um relatório antes de tentar copiar!');
+                return;
+            }
+
+            navigator.clipboard.writeText(relatorioTexto)
+                .then(() => {
+                    alert('Relatório copiado para a área de transferência!');
+                })
+                .catch(err => {
+                    alert('Falha ao copiar. Tente manualmente.');
+                    console.error('Erro ao copiar: ', err);
+                });
+        }
+
+        // Função principal (sem alteração na lógica, apenas formatação de data)
         function gerarRelatorio() {
-            // 1. Coletar dados gerais
             const tipoManutencao = document.getElementById('tipo_manutencao').value; 
             const data = document.getElementById('data_manutencao').value;
             const executantes = document.getElementById('executantes').value;
             const justificativaObs = document.getElementById('justificativa_obs').value;
 
-            // Reformatar data de AAAA-MM-DD (padrão do input type="date") para DD/MM/AAAA
             let dataFormatada = data;
             if (data && data.includes('-')) {
                  const partes = data.split('-');
-                 // partes[0]=AAAA, partes[1]=MM, partes[2]=DD
                  dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
             }
 
-            // 2. Coletar dados dos equipamentos
             let atividadesTexto = "";
             let pendenciasTexto = "";
             
@@ -208,9 +242,11 @@
 
                 if (nome) {
                     const nomeUpper = nome.toUpperCase(); 
+                    // Adiciona o % se o usuário não digitou
+                    const realizadoFinal = realizadoPerc ? (realizadoPerc.endsWith('%') ? realizadoPerc : `${realizadoPerc}%`) : 'N/A';
                     
                     if (atividade) {
-                        atividadesTexto += `${nomeUpper} (Realizado: ${realizadoPerc}%):\n${atividade}\n\n`;
+                        atividadesTexto += `${nomeUpper} (Realizado: ${realizadoFinal}):\n${atividade}\n\n`;
                     }
                     
                     if (pendencia) {
@@ -219,47 +255,33 @@
                 }
             });
 
-            // 3. Montar o relatório final
+            // Tratamento para campos vazios
+            const atividadesFinais = atividadesTexto.trim() || "Nenhuma atividade registrada.";
+            const pendenciasFinais = pendenciasTexto.trim() || "Nenhuma pendência registrada.";
+            const executantesFinais = executantes.trim() || "Nenhum executante listado.";
+            const obsFinais = justificativaObs.trim() || "Nenhuma observação geral.";
+
+
             const relatorioFinal = `
 MANUTENÇÃO ${tipoManutencao} - ${dataFormatada}
 
 Executantes:
-${executantes}
+${executantesFinais}
 ------------------------------------
 Atividades realizadas:
-${atividadesTexto.trim()}
+${atividadesFinais}
 
 ------------------------------------
-Pendências
-${pendenciasTexto.trim()}
+Pendências:
+${pendenciasFinais}
 -----------------------------------------
-OBSERVAÇÕES GERAIS
-${justificativaObs}
+OBSERVAÇÕES GERAIS:
+${obsFinais}
 -----------------------------------------
 `;
             
-            // 4. Injetar o relatório no elemento <pre>
             document.getElementById('relatorio-final').textContent = relatorioFinal.trim();
         }
     </script>
-    
-    <datalist id="lista-equipamentos">
-        <option value="PF1105">
-        <option value="PF1111">
-        <option value="PF1115">
-        <option value="PF1120">
-        <option value="PF1140">
-        <option value="PF1142">
-        <option value="PF1144">
-        <option value="PF1145"> 
-        <option value="PF1146">
-        <option value="PF1147">
-        <option value="PF1148">
-        <option value="PF6750">
-        <option value="PF6752">
-        <option value="PF6753">
-            
-    </datalist>
-
 </body>
 </html>
