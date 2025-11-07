@@ -3,299 +3,263 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-    
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-    <title>Painel de Indicadores – Manutenção</title>
+    <title>Gerador de Relatório (JS)</title>
+    <style>
+        /* CSS do seu projeto */
+        body { font-family: Arial, sans-serif; margin: 20px; background-color: #f4f4f4; }
+        h2, h3, h4 { color: #333; }
+        form { background: #fff; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); }
+        div { margin-bottom: 15px; }
+        label { display: block; margin-bottom: 5px; font-weight: bold; }
+        /* Incluindo estilos para input[type="date"] e select */
+        input[type="text"], input[type="date"], textarea, select { 
+            width: 95%;
+            padding: 8px;
+            border-radius: 4px;
+            border: 1px solid #ccc;
+            font-family: Arial, sans-serif;
+        }
+        .equip-grid-2-col input[type="text"] {
+             width: 90%;
+        }
+        textarea { height: 100px; }
+        button {
+            background-color: #007bff;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: background-color 0.3s;
+        }
+        button:hover { background-color: #0056b3; }
+        button.add-equip {
+            background-color: #28a745;
+            font-size: 14px;
+            padding: 8px 12px;
+            margin-top: 10px;
+        }
+        button.add-equip:hover { background-color: #218838; }
+        button.remove-equip {
+            background-color: #dc3545;
+            padding: 5px 10px;
+            font-size: 12px;
+            float: right; 
+        }
+        button.remove-equip:hover { background-color: #c82333; }
+        pre {
+            background-color: #eee;
+            border: 1px dashed #ccc;
+            padding: 15px;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: monospace;
+            font-size: 14px;
+        }
+        .equip-bloco {
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            padding: 15px;
+            margin-top: 10px;
+            background: #fdfdfd;
+            position: relative;
+        }
+        .equip-grid-2-col {
+            display: grid;
+            grid-template-columns: 2fr 1fr;
+            gap: 15px;
+            margin-top: 10px;
+        }
+        .equip-grid-2-col div {
+            margin-bottom: 0;
+        }
+    </style>
 </head>
-<body class="bg-light">
+<body>
 
-    <div class="container my-5">
-        <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="display-6">Painel de Indicadores</h1>
-            <a href="index.html" class="btn btn-outline-secondary">
-                <i class="bi bi-arrow-left"></i> Voltar ao Gerador
-            </a>
-        </div>
+    <h2>Gerador de Relatório de Manutenção</h2>
+    <p>Preencha os campos abaixo para gerar o relatório padronizado.</p>
 
-        <div class="row g-4">
-            
-            <div class="col-lg-6">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Manutenções por Tipo</h5>
-                        <canvas id="chartTipos"></canvas>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-lg-6">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Executantes Mais Ativos</h5>
-                        <canvas id="chartExecutantes"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-6">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Máquinas com Mais Falhas (Corretivas)</h5>
-                        <canvas id="chartCorretivas"></canvas>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="col-lg-6">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Equipamentos com Mais Preventivas</h5>
-                        <canvas id="chartPreventivas"></canvas>
-                    </div>
-                </div>
-            </div>
-
-            <div class="col-lg-12">
-                <div class="card shadow-sm">
-                    <div class="card-body">
-                        <h5 class="card-title">Equipamentos Mais Citados (Total Geral)</h5>
-                        <canvas id="chartEquipamentos"></canvas>
-                    </div>
-                </div>
-            </div>
-
+    <form id="relatorio-form"> 
+        <div>
+            <label for="tipo_manutencao">Tipo de Manutenção:</label>
+            <select id="tipo_manutencao" name="tipo_manutencao" required>
+                <option value="PREVENTIVA" selected>Preventiva</option>
+                <option value="CORRETIVA">Corretiva</option>
+            </select>
         </div>
         
-        <div id="no-data-message" class="alert alert-warning mt-4" style="display: none;">
-            Nenhum dado encontrado. Gere alguns relatórios na página principal para ver os gráficos.
+        <div>
+            <label for="data_manutencao">Data da Manutenção:</label>
+            <input type="date" id="data_manutencao" name="data_manutencao" required>
+        </div>
+        <div>
+            <label for="executantes">Executantes (um por linha):</label>
+            <textarea id="executantes" name="executantes" rows="3"></textarea>
         </div>
 
-    </div>
+        <hr>
+        <h3>Equipamentos</h3>
+        
+        <div id="equipamentos-container">
+            </div>
+        
+        <button type="button" class="add-equip" onclick="addEquipamento()">
+            + Adicionar Equipamento
+        </button>
+        
+        <hr>
+        
+        <div>
+            <label for="justificativa_obs">Observações Gerais:</label>
+            <textarea id="justificativa_obs" name="justificativa_obs"></textarea>
+        </div>
+
+        <button type="button" onclick="gerarRelatorio()">Gerar Relatório</button>
+    </form>
+
+    <h3>Relatório Gerado (Pronto para Copiar):</h3>
+    <pre id="relatorio-final"></pre>
+
 
     <script>
-        const HISTORICO_KEY = 'historicoRelatoriosManutencao';
+        let uniqueEquipId = 0;
 
-        document.addEventListener('DOMContentLoaded', () => {
-            const historico = JSON.parse(localStorage.getItem(HISTORICO_KEY)) || [];
-
-            if (historico.length === 0) {
-                document.getElementById('no-data-message').style.display = 'block';
-                return;
-            }
-
-            processarDados(historico);
-        });
-
-        // (FUNÇÃO ATUALIZADA)
-        function processarDados(historico) {
-            const contagemTipos = {};
-            const contagemEquipamentos = {};
-            const contagemExecutantes = {};
-            const contagemEquipamentosCorretiva = {};
-            const contagemEquipamentosPreventiva = {}; // <-- NOVO CONTADOR
-
-            historico.forEach(relatorio => {
-                // 1. Contar Tipos de Manutenção
-                const tipo = relatorio.tipo_manutencao;
-                contagemTipos[tipo] = (contagemTipos[tipo] || 0) + 1;
-
-                // 2. Contar Equipamentos
-                relatorio.equipamentos.forEach(equip => {
-                    const nomeEquip = equip.nome.toUpperCase().trim();
-                    if (nomeEquip) {
-                        // Contagem total
-                        contagemEquipamentos[nomeEquip] = (contagemEquipamentos[nomeEquip] || 0) + 1;
-                        
-                        // Contagem de CORRETIVA
-                        if (relatorio.tipo_manutencao === 'CORRETIVA') {
-                            contagemEquipamentosCorretiva[nomeEquip] = (contagemEquipamentosCorretiva[nomeEquip] || 0) + 1;
-                        }
-                        
-                        // (NOVA LÓGICA) Contagem de PREVENTIVA
-                        if (relatorio.tipo_manutencao === 'PREVENTIVA') {
-                            contagemEquipamentosPreventiva[nomeEquip] = (contagemEquipamentosPreventiva[nomeEquip] || 0) + 1;
-                        }
-                    }
-                });
-
-                // 3. Contar Executantes
-                const executantes = relatorio.executantes.split(/[\n,]/);
-                executantes.forEach(nome => {
-                    const nomeExec = nome.trim();
-                    if (nomeExec) {
-                        contagemExecutantes[nomeExec] = (contagemExecutantes[nomeExec] || 0) + 1;
-                    }
-                });
-            });
+        function addEquipamento() {
+            uniqueEquipId++;
+            const currentId = uniqueEquipId;
+            const container = document.getElementById('equipamentos-container');
+            const newEquip = document.createElement('div');
+            newEquip.className = 'equip-bloco';
+            newEquip.id = `equipamento-${currentId}`; 
             
-            // Renderizar os gráficos
-            renderChartTipos(contagemTipos);
-            renderChartExecutantes(contagemExecutantes, true);
-            renderChartCorretivas(contagemEquipamentosCorretiva, true);
-            renderChartPreventivas(contagemEquipamentosPreventiva, true); // <-- CHAMA A NOVA FUNÇÃO
-            renderChartEquipamentos(contagemEquipamentos, true);
-        }
+            newEquip.innerHTML = `
+                <h4>
+                    Equipamento #${currentId}
+                    <button type="button" class="remove-equip" onclick="removeEquipamento(${currentId})">
+                        Remover
+                    </button>
+                </h4>
+                
+                <div class="equip-grid-2-col">
+                    <div>
+                        <label for="equip_nome_${currentId}">Nome do Equipamento (digitar ou clicar para ver opções):</label>
+                        <input type="text" id="equip_nome_${currentId}" name="equip_nome_${currentId}" placeholder="Ex: PF1146" list="lista-equipamentos">
+                    </div>
+                    <div>
+                        <label for="equip_realizado_${currentId}">Realizado (%):</label>
+                        <input type="text" id="equip_realizado_${currentId}" name="equip_realizado_${currentId}" value="">
+                    </div>
+                </div>
 
-        // --- Funções de Renderização dos Gráficos ---
-
-        // Gráfico de Pizza (Tipos)
-        function renderChartTipos(dados) {
-            const ctx = document.getElementById('chartTipos').getContext('2d');
-            new Chart(ctx, {
-                type: 'pie', 
-                data: {
-                    labels: Object.keys(dados),
-                    datasets: [{
-                        label: 'Manutenções',
-                        data: Object.values(dados),
-                        backgroundColor: [
-                            'rgba(255, 99, 132, 0.7)', // Corretiva (Vermelho)
-                            'rgba(75, 192, 192, 0.7)', // Preventiva (Verde)
-                            'rgba(255, 206, 86, 0.7)', // Inspeção (Amarelo)
-                            'rgba(54, 162, 235, 0.7)',  // Melhoria (Azul)
-                        ],
-                        borderColor: '#fff',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { position: 'top' }
-                    }
-                }
-            });
+                <div>
+                    <label for="atividades_${currentId}">Atividades Realizadas:</label>
+                    <textarea id="atividades_${currentId}" name="atividades_${currentId}"></textarea>
+                </div>
+                <div>
+                    <label for="pendencias_${currentId}">Pendências:</label>
+                    <textarea id="pendencias_${currentId}" name="pendencias_${currentId}"></textarea>
+                </div>
+            `;
+            container.appendChild(newEquip);
         }
         
-        // Gráfico de Barras (Executantes) - Roxo
-        function renderChartExecutantes(dados, ordenar = false) {
-            const ctx = document.getElementById('chartExecutantes').getContext('2d');
-            let items = Object.entries(dados);
-            if (ordenar) {
-                items.sort((a, b) => b[1] - a[1]); 
+        function removeEquipamento(id) {
+            const equipBloco = document.getElementById(`equipamento-${id}`);
+            if (equipBloco) {
+                equipBloco.remove();
             }
-            const labels = items.map(item => item[0]);
-            const values = items.map(item => item[1]);
-            new Chart(ctx, {
-                type: 'bar', 
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Nº de Atuações',
-                        data: values,
-                        backgroundColor: 'rgba(153, 102, 255, 0.7)', // Roxo
-                        borderColor: 'rgba(153, 102, 255, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
         }
 
-        // Gráfico de Barras (Corretivas) - Vermelho
-        function renderChartCorretivas(dados, ordenar = false) {
-            const ctx = document.getElementById('chartCorretivas').getContext('2d');
-            let items = Object.entries(dados);
-            if (ordenar) {
-                items.sort((a, b) => b[1] - a[1]);
+        function gerarRelatorio() {
+            // 1. Coletar dados gerais
+            const tipoManutencao = document.getElementById('tipo_manutencao').value; 
+            const data = document.getElementById('data_manutencao').value;
+            const executantes = document.getElementById('executantes').value;
+            const justificativaObs = document.getElementById('justificativa_obs').value;
+
+            // Reformatar data de AAAA-MM-DD (padrão do input type="date") para DD/MM/AAAA
+            let dataFormatada = data;
+            if (data && data.includes('-')) {
+                 const partes = data.split('-');
+                 // partes[0]=AAAA, partes[1]=MM, partes[2]=DD
+                 dataFormatada = `${partes[2]}/${partes[1]}/${partes[0]}`;
             }
-            const labels = items.map(item => item[0]);
-            const values = items.map(item => item[1]);
-            new Chart(ctx, {
-                type: 'bar', 
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Nº de Corretivas',
-                        data: values,
-                        backgroundColor: 'rgba(255, 99, 132, 0.7)', // Vermelho
-                        borderColor: 'rgba(255, 99, 132, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        }
-        
-        // (NOVA FUNÇÃO) Gráfico de Barras (Preventivas) - Verde
-        function renderChartPreventivas(dados, ordenar = false) {
-            const ctx = document.getElementById('chartPreventivas').getContext('2d');
+
+            // 2. Coletar dados dos equipamentos
+            let atividadesTexto = "";
+            let pendenciasTexto = "";
             
-            let items = Object.entries(dados);
-            if (ordenar) {
-                items.sort((a, b) => b[1] - a[1]); 
-            }
+            const equipamentos = document.querySelectorAll('#equipamentos-container .equip-bloco');
+
+            equipamentos.forEach(bloco => {
+                const id = bloco.id.split('-')[1]; 
+
+                const nomeInput = document.getElementById(`equip_nome_${id}`);
+                const realizadoInput = document.getElementById(`equip_realizado_${id}`);
+                const atividadesInput = document.getElementById(`atividades_${id}`);
+                const pendenciasInput = document.getElementById(`pendencias_${id}`);
+
+                const nome = nomeInput ? nomeInput.value.trim() : '';
+                const realizadoPerc = realizadoInput ? realizadoInput.value.replace('%', '').trim() : '';
+                const atividade = atividadesInput ? atividadesInput.value.trim() : '';
+                const pendencia = pendenciasInput ? pendenciasInput.value.trim() : '';
+
+                if (nome) {
+                    const nomeUpper = nome.toUpperCase(); 
+                    
+                    if (atividade) {
+                        atividadesTexto += `${nomeUpper} (Realizado: ${realizadoPerc}%):\n${atividade}\n\n`;
+                    }
+                    
+                    if (pendencia) {
+                        pendenciasTexto += `${nomeUpper}:\n${pendencia}\n\n`;
+                    }
+                }
+            });
+
+            // 3. Montar o relatório final
+            const relatorioFinal = `
+MANUTENÇÃO ${tipoManutencao} - ${dataFormatada}
+
+Executantes:
+${executantes}
+------------------------------------
+Atividades realizadas:
+${atividadesTexto.trim()}
+
+------------------------------------
+Pendências
+${pendenciasTexto.trim()}
+-----------------------------------------
+OBSERVAÇÕES GERAIS
+${justificativaObs}
+-----------------------------------------
+`;
             
-            const labels = items.map(item => item[0]);
-            const values = items.map(item => item[1]);
-
-            new Chart(ctx, {
-                type: 'bar', 
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Nº de Preventivas',
-                        data: values,
-                        backgroundColor: 'rgba(75, 192, 192, 0.7)', // Verde
-                        borderColor: 'rgba(75, 192, 192, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    indexAxis: 'y', // Gráfico horizontal
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
+            // 4. Injetar o relatório no elemento <pre>
+            document.getElementById('relatorio-final').textContent = relatorioFinal.trim();
         }
-
-        // Gráfico de Barras (Total de Citações) - Azul
-        function renderChartEquipamentos(dados, ordenar = false) {
-            const ctx = document.getElementById('chartEquipamentos').getContext('2d');
-            let items = Object.entries(dados);
-            if (ordenar) {
-                items.sort((a, b) => b[1] - a[1]);
-            }
-            const labels = items.map(item => item[0]);
-            const values = items.map(item => item[1]);
-            new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [{
-                        label: 'Nº de Citações',
-                        data: values,
-                        backgroundColor: 'rgba(54, 162, 235, 0.7)', // Azul
-                        borderColor: 'rgba(54, 162, 235, 1)',
-                        borderWidth: 1
-                    }]
-                },
-                options: {
-                    indexAxis: 'y',
-                    responsive: true,
-                    plugins: {
-                        legend: { display: false }
-                    }
-                }
-            });
-        }
-
     </script>
+    
+    <datalist id="lista-equipamentos">
+        <option value="PF1105">
+        <option value="PF1111">
+        <option value="PF1115">
+        <option value="PF1120">
+        <option value="PF1140">
+        <option value="PF1142">
+        <option value="PF1144">
+        <option value="PF1145"> 
+        <option value="PF1146">
+        <option value="PF1147">
+        <option value="PF1148">
+        <option value="PF6750">
+        <option value="PF6752">
+        <option value="PF6753">
+            
+    </datalist>
+
 </body>
 </html>
